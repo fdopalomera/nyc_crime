@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from time import time
-from sklearn.preprocessing import StandardScaler, OrdinalEncoder
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.pipeline import make_pipeline
 from sklearn.compose import make_column_transformer
 from sklearn.model_selection import train_test_split
@@ -51,7 +51,7 @@ def distribution_plots(df, columns=3):
 
 def pre_processing(df, num_cols, obj_cols, exclude, outliers_cols, target, 
                     drop_nan=False, remove_outliers=False, std_scaler=False, 
-                    ord_encoder=True, custom_split=True):
+                    one_hot=True, custom_split=True):
     """
     Función para aplicar un preprocesamiento de datos sobre un dataframe
 
@@ -76,8 +76,18 @@ def pre_processing(df, num_cols, obj_cols, exclude, outliers_cols, target,
     
     if std_scaler:
         num_steps = StandardScaler()
-    if ord_encoder:
-        obj_steps = OrdinalEncoder()
+    if one_hot:
+        # Categorías para one-hot
+        tmp2 = tmp[obj_cols]
+        categories = [list(tmp2[var].value_counts().sort_values(ascending=True).index) for var in tmp2]
+        obj_steps = OneHotEncoder(categories, sparse=False, drop='first')
+        
+        #Nombre de columnas dummy
+        tuples = [(var, list(tmp2[var].value_counts().sort_values(ascending=True).index)[1:]) for var in tmp2]
+        dummy_names = ['{}_{}'.format(tup[0], cat) for tup in tuples for cat in tup[1]]
+        # Renombre de columnas df final
+        columns = num_cols+dummy_names+exclude
+        target = ['{}_{}'.format(tup[0], tup[1][0]) for tup in tuples if tup[0] == target][0]
 
     # Creación de pipeline para preproceso
     num_pipe = make_pipeline(num_steps)
@@ -91,8 +101,7 @@ def pre_processing(df, num_cols, obj_cols, exclude, outliers_cols, target,
     preprocessed = column_transformer.fit_transform(tmp)
 
     df_pre = pd.DataFrame(data=preprocessed, columns=columns)
-
-
+    
      # Train test split
     if custom_split:
    
@@ -109,6 +118,21 @@ def pre_processing(df, num_cols, obj_cols, exclude, outliers_cols, target,
         X = df_pre.drop(columns=[target, 'sample'])
         y = df.pre[target]
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.3, random_state=123)
+
+    # Eliminación de columnas con una clase
+    to_delete = [var for var in X_train if len(X_train[var].unique()) == 1]
+    X_train = X_train.drop(columns=to_delete)
+    X_test = X_test.drop(columns=to_delete)
+
+    # to_delet2 
+    #for x in to_delete+[target]: 
+    #    dummy_names.remove(x)
+    
+    #to_delete2 = [var for var in dummy_names
+    #                if X_train[var].value_counts('%').sort_values()[0] < .01]
+    #X_train = X_train.drop(columns=to_delete2)
+    #X_test = X_test.drop(columns=to_delete2)
+    #print(to_delete2)
 
     return X_train, X_test, y_train, y_test
 
