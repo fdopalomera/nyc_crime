@@ -8,6 +8,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.compose import make_column_transformer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report
+from sklearn.model_selection import GridSearchCV
 
 
 
@@ -134,6 +135,12 @@ def pre_processing(df, num_cols, obj_cols, exclude, outliers_cols, target,
     #X_test = X_test.drop(columns=to_delete2)
     #print(to_delete2)
 
+    # Aegurar tipo de dato para entrenar y modelos modelos
+    X_train = X_train.astype('int')
+    y_train = y_train.astype('int')
+    X_test = X_test.astype('int')
+    y_test = y_test.astype('int')
+
     return X_train, X_test, y_train, y_test
 
 
@@ -147,8 +154,9 @@ def clf_metrics(clf, X_train, y_train, X_test, y_test):
     tic = time()
     # Entrenar el modelo
     clf.fit(X_train, y_train)
-    # Imprimir mejores parámetros
-    print(clf.best_params_)
+    # Imprimir mejores parámetros sí el objeto 
+    if isinstance(clf, GridSearchCV):
+        print(clf.best_params_)
     # Predecir la muestra de validación
     y_hat = clf.predict(X_test)
     # Métricas
@@ -158,3 +166,47 @@ def clf_metrics(clf, X_train, y_train, X_test, y_test):
     for key, value in metrics.items():
         print('{}:\n{}'.format(key, value))
     return print("Realizado en {:.3f}s".format(time() - tic))
+
+
+def compare_classifiers(estimators, X_test, y_test, n_cols=2):
+
+    """
+    Compara en forma gráfica las métricas de clasificación a partir de una lista de 
+    tuplas con los modelos (nombre_modelo, modelo_entrendo) 
+    """
+
+    rows = np.ceil(len(estimators)/n_cols)
+    height = 2 * rows
+    width = n_cols * 5
+    fig = plt.figure(figsize=(width, height))
+
+    colors = ['dodgerblue', 'tomato', 'purple', 'orange']
+
+    for n, model in enumerate(estimators):
+
+        y_hat = model[1].predict(X_test) 
+        dc = classification_report(y_test, y_hat, output_dict=True)
+
+        plt.subplot(rows, n_cols, n + 1)
+
+        for i, j in enumerate(['0', '1', 'macro avg']):
+
+            tmp = {'0': {'marker': 'x', 'label': f'Class: {j}'},
+                   '1': {'marker': 'x', 'label': f'Class: {j}'},
+                   'macro avg': {'marker': 'o', 'label': 'Avg'}}
+
+            plt.plot(dc[j]['precision'], [1], marker=tmp[j]['marker'], color=colors[i])
+            plt.plot(dc[j]['recall'], [2], marker=tmp[j]['marker'], color=colors[i])
+            plt.plot(dc[j]['f1-score'], [3], marker=tmp[j]['marker'],color=colors[i], label=tmp[j]['label'])
+            plt.axvline(x=.5, ls='--')
+
+        plt.yticks([1.0, 2.0, 3.0], ['Precision', 'Recall', 'f1-Score'])
+        plt.title(model[0])
+        plt.xlim((0.4, 1.0))
+
+        if (n + 1) % 2 == 0:
+            plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+            
+    fig.tight_layout()
+    
+    return
