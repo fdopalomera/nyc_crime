@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from time import time
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.pipeline import make_pipeline
 from sklearn.compose import make_column_transformer
 from sklearn.model_selection import train_test_split
@@ -152,6 +152,13 @@ def clf_metrics(clf, X_train, y_train, X_test, y_test):
 
     """    
     tic = time()
+    # Corrroboración preproceso target
+    if (y_train.dtype =='object') & (y_test.dtype == 'object'):
+
+        lbl_encoder = LabelEncoder()
+        y_train = lbl_encoder.fit_transform(y_train)
+        y_test = lbl_encoder.transform(y_test)
+
     # Entrenar el modelo
     clf.fit(X_train, y_train)
     # Imprimir mejores parámetros sí el objeto 
@@ -202,7 +209,7 @@ def compare_classifiers(estimators, X_test, y_test, n_cols=2):
 
         plt.yticks([1.0, 2.0, 3.0], ['Precision', 'Recall', 'f1-Score'])
         plt.title(model[0])
-        plt.xlim((0.4, 1.0))
+        plt.xlim((0.1, 1.0))
 
         if (n + 1) % 2 == 0:
             plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
