@@ -16,7 +16,10 @@ from sklearn.model_selection import GridSearchCV
 
 """
 Grafica la distribución de las variables dentro de un dataframe, según su tipo de dato.
-
+@params
+   df: DataFrame a graficar
+   columns= cantidad de columnas en las que se visualizaran los graficos en el jupyter, 
+    predeterminado en 3 columnas.
 """
 
 def distribution_plots(df, columns=3):
@@ -67,11 +70,10 @@ def pre_processing(df, num_cols, obj_cols, exclude, target, std_scaler=False,
     if one_hot:
         # Categorías para one-hot
         tmp2 = tmp[obj_cols]
-        categories = [list(tmp2[var].value_counts().sort_values(ascending=True).index) for var in tmp2]
+        categories = [list(tmp2[var].value_counts().sort_values(ascending=False).index) for var in tmp2]
         obj_steps = OneHotEncoder(categories, sparse=False, drop='first')
-        
         #Nombre de columnas dummy
-        tuples = [(var, list(tmp2[var].value_counts().sort_values(ascending=True).index)[1:]) for var in tmp2]
+        tuples = [(var, list(tmp2[var].value_counts().sort_values(ascending=False).index)[1:]) for var in tmp2]
         dummy_names = ['{}_{}'.format(tup[0], cat) for tup in tuples for cat in tup[1]]
         # Renombre de columnas df final
         #columns = [target]+num_cols+dummy_names+exclude
@@ -128,7 +130,12 @@ def pre_processing(df, num_cols, obj_cols, exclude, target, std_scaler=False,
 def clf_metrics(clf, X_train, y_train, X_test, y_test):
     """
     Imprime un reporte con las métricas de problemas de clasificación clásicas:
-
+    @params
+        clf: modelo a graficar sus métricas.
+        X_train: Set de datos de entrenamiento.
+        y_train: Vector objetivo de  entrenamiento.
+        X_test: Set de datos de validación.
+        y_test: Vector objetivo de validación.
     """    
     tic = time()
     # Corrroboración preproceso target
@@ -158,7 +165,13 @@ def compare_classifiers(estimators, X_test, y_test, n_cols=2):
 
     """
     Compara en forma gráfica las métricas de clasificación a partir de una lista de 
-    tuplas con los modelos (nombre_modelo, modelo_entrendo) 
+    tuplas con los modelos (nombre_modelo, modelo_entrendo)
+    @params
+        estimators: lista de tuplas con los modelos.
+        X_test: Set de datos de validación.
+        y_test: Vector objetivo de validación.
+        n_cols= número de columnas en las que se visualizaran los 
+            gráficos en el jupyter, predeterminado en 2.
     """
 
     rows = np.ceil(len(estimators)/n_cols)
